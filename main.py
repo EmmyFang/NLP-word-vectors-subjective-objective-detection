@@ -68,9 +68,14 @@ def main(args):
     train_iter, val_iter, test_iter = data.BucketIterator.splits((train, val, test), sort_key=lambda x: len(x.Text), batch_sizes=(args.batch_size,args.batch_size,args.batch_size),sort_within_batch=True, repeat = False)
 
     # train_iter, val_iter, test_iter = data.Iterator.splits((train, val, test), sort_key=lambda x: len(x.Text), batch_sizes=(args.batch_size, 1600, 2000),sort_within_batch=True, repeat = False)
+    
+    # to construct the Vocab object that represents the set of possible values for this field.
     text.build_vocab(train)
     # text.build_vocab(train, vectors="glove.6B.100d")
+    
+    # a vocabulary object that will be used to numericalize a field
     vocab = text.vocab
+    # load one of or a list containing instantiations of the GloVe, CharNGram, or Vectors classes.
     vocab.load_vectors(torchtext.vocab.GloVe(name='6B', dim=args.emb_dim))
 
     filter_size = (2, 4)
@@ -89,7 +94,7 @@ def main(args):
             optimizer.zero_grad()
             predictions = model(x, x_lengths)
             batch_loss = loss_fnc(input=predictions.squeeze(), target=label.float())
-            accum_loss += batch_loss
+            accum_loss += batch_loss.item()
             batch_loss.backward()
             optimizer.step()
             corr = (predictions > 0.5).squeeze().long() == label
@@ -102,19 +107,8 @@ def main(args):
 
         print('epoch {} train acc: {}, train loss: {}, val acc: {}, val loss: {}'.format(epoch+1, train_acc, train_loss, valid_acc, valid_loss))
 
-
-
-
-
     print('no packed ')
     torch.save(model, 'model_{}_no_pack.pt'.format(args.model))
-
-
-
-
-
-
-
 
     test_acc, test_loss = evaluate(model, test_iter, loss_fnc)
     print('test acc: {}, test loss: {}'.format(test_acc, test_loss))
