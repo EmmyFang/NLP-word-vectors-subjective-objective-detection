@@ -42,11 +42,6 @@ def evaluate(model, val_loader, loss_fnc):
         batch_loss = loss_fnc(input=prediction.squeeze(), target=label.float())
         total_loss += batch_loss.item()
         total_epoch += len(label)
-        # print('val corr: {}, val size: {}'.format(total_corr, len(label)))
-
-    # print('total epoch: {}'.format(total_epoch))
-    # print('total corr: {}'.format(total_corr))
-    # print('batch: {}'.format(i+1))
     acc = float((total_corr)/total_epoch)
     loss = float(total_loss) / (i + 1)
     return acc, loss
@@ -64,8 +59,15 @@ def main(args):
     text = data.Field(sequential=True, tokenize='spacy', include_lengths=True)
     label = data.Field(sequential=False, use_vocab=False)
     ######
-    train, val, test = data.TabularDataset.splits(path='./data/', train='train.tsv', validation='validation.tsv', test='test.tsv', format='tsv', skip_header = True, fields=[('Text', text), ('Label', label)])
-    train_iter, val_iter, test_iter = data.BucketIterator.splits((train, val, test), sort_key=lambda x: len(x.Text), batch_sizes=(args.batch_size,args.batch_size,args.batch_size),sort_within_batch=True, repeat = False)
+    train, val, test = data.TabularDataset.splits(path='./data/', train='train.tsv',
+                                                  validation='validation.tsv',
+                                                  test='test.tsv', format='tsv',
+                                                  skip_header = True, fields=[('Text', text), ('Label', label)])
+
+    train_iter, val_iter, test_iter = data.BucketIterator.splits(
+        (train, val, test), sort_key=lambda x: len(x.Text),
+        batch_sizes=(args.batch_size,args.batch_size,args.batch_size),
+        sort_within_batch=True, repeat = False)
 
     # train_iter, val_iter, test_iter = data.Iterator.splits((train, val, test), sort_key=lambda x: len(x.Text), batch_sizes=(args.batch_size, 1600, 2000),sort_within_batch=True, repeat = False)
     
@@ -85,12 +87,10 @@ def main(args):
     # 5 Training and Evaluation
     for epoch in range (args.epochs):
         accum_loss = 0
-        tot_corr = 0
         train_corr = 0
         train_size_count = 0
         for i,d in enumerate (train_iter):
             (x, x_lengths), label = d.Text, d.Label
-            # print(x_lengths)
             optimizer.zero_grad()
             predictions = model(x, x_lengths)
             batch_loss = loss_fnc(input=predictions.squeeze(), target=label.float())
@@ -103,7 +103,6 @@ def main(args):
         valid_acc, valid_loss = evaluate(model, val_iter, loss_fnc)
         train_acc = train_corr / train_size_count
         train_loss = accum_loss / (i+1)
-        # print('train corr: {}, train size: {}'.format(train_corr, train_size_count))
 
         print('epoch {} train acc: {}, train loss: {}, val acc: {}, val loss: {}'.format(epoch+1, train_acc, train_loss, valid_acc, valid_loss))
 
@@ -114,7 +113,6 @@ def main(args):
     print('test acc: {}, test loss: {}'.format(test_acc, test_loss))
     print('model {}'.format(args.model))
     ######
-
 
 if __name__ == '__main__':
     parser = argparse.ArgumentParser()
